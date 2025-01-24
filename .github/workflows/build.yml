@@ -1,0 +1,59 @@
+name: Build Application
+
+on:
+  workflow_call:
+    inputs:
+      env_file:
+        required: false
+        type: boolean
+        default: false
+      tag:
+        required: false
+        type: string
+    secrets:
+      DUBBING_API_BASE_URL:
+        required: false
+      TRANSCRIPTION_API_BASE_URL:
+        required: false
+      MATXA_API_BASE_URL:
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Load .env.production
+        if: inputs.env_file
+        run: |
+          echo "DUBBING_API_BASE_URL=$(grep DUBBING_API_BASE_URL .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
+          echo "TRANSCRIPTION_API_BASE_URL=$(grep TRANSCRIPTION_API_BASE_URL .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
+          echo "MATXA_API_BASE_URL=$(grep MATXA_API_BASE_URL .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
+          echo "APP_MODE=$(grep APP_MODE .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
+          echo "APP_LANGUAGE=$(grep APP_LANGUAGE .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
+
+      - name: Build
+        run: npm run build:prod
+        env:
+          DUBBING_API_BASE_URL: ${{ inputs.env_file && env.DUBBING_API_BASE_URL || secrets.DUBBING_API_BASE_URL }}
+          TRANSCRIPTION_API_BASE_URL: ${{ inputs.env_file && env.TRANSCRIPTION_API_BASE_URL || secrets.TRANSCRIPTION_API_BASE_URL }}
+          MATXA_API_BASE_URL: ${{ inputs.env_file && env.MATXA_API_BASE_URL || secrets.MATXA_API_BASE_URL }}
+          APP_MODE: ${{ inputs.env_file && env.APP_MODE || 'production' }}
+          APP_LANGUAGE: ${{ inputs.env_file && env.APP_LANGUAGE || 'ca' }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

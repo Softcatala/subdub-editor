@@ -40,7 +40,7 @@ export const loadTracksFromUUID = async (uuid: string): Promise<any> => {
   return response.json();
 };
 
-export const parseTracksFromJSON = (json: any): Track[] => {
+export const parseTracksFromJSON = async (json: any): Promise<Track[]> => {
   return json.segments.map((segment: any) => ({
     id: segment.id,
     start: segment.start,

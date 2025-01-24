@@ -1,0 +1,59 @@
+name: Sync to WordPress Theme
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to sync (e.g. v1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ inputs.tag || github.event.release.tag_name }}
+    secrets:
+      DUBBING_API_BASE_URL: ${{ secrets.DUBBING_API_BASE_URL }}
+      TRANSCRIPTION_API_BASE_URL: ${{ secrets.TRANSCRIPTION_API_BASE_URL }}
+      MATXA_API_BASE_URL: ${{ secrets.MATXA_API_BASE_URL }}
+
+  sync:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Find JS filename
+        id: find-js
+        run: |
+          JS_FILE=$(find dist/assets -name "index-*.js" -type f)
+          echo "js_file=$JS_FILE" >> $GITHUB_OUTPUT
+
+      - name: Checkout wp-softcatala repository
+        uses: actions/checkout@v4
+        with:
+          repository: Softcatala/wp-softcatala
+          token: ${{ secrets.WP_REPO_TOKEN }}
+          path: wp-softcatala
+
+      - name: Copy JS file
+        run: |
+          pwd
+          ls -al
+          cp "${{ steps.find-js.outputs.js_file }}" wp-softcatala/static/js/subdub-editor.js
+
+      - name: Commit and push changes
+        working-directory: wp-softcatala
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add static/js/subdub-editor.js
+          git commit -m "Update subdub-editor.js to version ${{ github.event.release.tag_name || inputs.tag }}"
+          git push origin HEAD:master

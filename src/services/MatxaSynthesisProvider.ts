@@ -1,20 +1,27 @@
 import { Voice } from "../types/Voice";
 import { SynthesisProvider } from "./SynthesisService";
 
-interface MatxaVoice extends Voice {
-  gender: string;
+export interface MatxaVoice extends Voice {
   language: string;
   region: string;
   name: string;
+}
+
+interface MatxaVoiceResponse {
+  gender: string;
+  id: string;
+  language: string;
+  name: string;
+  region: string;
 }
 
 const API_BASE_URL =
   process.env.MATXA_API_BASE_URL ||
   "https://api.softcatala.org/dubbing-service/v1";
 
-class MatxaSynthesisProvider implements SynthesisProvider {
+export class MatxaSynthesisProvider implements SynthesisProvider {
   private providerName = "matxa";
-  private voiceList: MatxaVoice[] = [
+  private defaultVoiceList: MatxaVoice[] = [
     {
       name: "quim-balear",
       id: "0",
@@ -88,8 +95,42 @@ class MatxaSynthesisProvider implements SynthesisProvider {
       provider: this.providerName,
     },
   ];
+  private voiceList: MatxaVoice[] = [];
 
-  async voices(): Promise<Voice[]> {
+  private async fetchVoices(): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/voices/`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data: MatxaVoiceResponse[] = await response.json();
+
+      this.voiceList = data.map((voice) => ({
+        ...voice,
+        provider: this.providerName,
+        label: this.createVoiceLabel(voice),
+      }));
+    } catch (error) {
+      console.error("Error fetching voices:", error);
+      this.voiceList = this.defaultVoiceList;
+    }
+  }
+
+  private createVoiceLabel(voice: MatxaVoiceResponse): string {
+    const gender = voice.gender === "male" ? "Home" : "Dona";
+    const region = this.capitalizeFirstLetter(voice.region);
+    const name = this.capitalizeFirstLetter(voice.name.split("-")[0]);
+    return `${gender} - ${region} (${name})`;
+  }
+
+  private capitalizeFirstLetter(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  async voices(): Promise<MatxaVoice[]> {
+    if (this.voiceList.length === 0) {
+      await this.fetchVoices();
+    }
     return this.voiceList;
   }
 
@@ -110,7 +151,10 @@ class MatxaSynthesisProvider implements SynthesisProvider {
     }
   }
 
-  getVoice(id: string): Voice {
+  async getVoice(id: string): Promise<MatxaVoice> {
+    if (this.voiceList.length === 0) {
+      await this.fetchVoices();
+    }
     return this.voiceList.find((voice) => voice.id === id) || this.voiceList[0];
   }
 

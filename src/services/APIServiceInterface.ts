@@ -3,7 +3,7 @@ import { Track } from "../types/Track";
 export interface APIServiceInterface {
   getMediaUrl: (uuid: string, revision: string) => string;
   loadTracksFromUUID: (uuid: string) => Promise<any>;
-  parseTracksFromJSON: (json: any) => Track[];
+  parseTracksFromJSON: (json: any) => Promise<Track[]>;
 }
 
 export interface DubbingAPIServiceInterface extends APIServiceInterface {

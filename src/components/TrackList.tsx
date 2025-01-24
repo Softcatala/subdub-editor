@@ -163,7 +163,7 @@ const TrackList: React.FC<TrackListProps> = ({
               value={isDubbingService ? track.translated_text : track.text}
               onChange={(e) => handleTextareaChange(track.id, e)}
               onFocus={(e) => adjustTextareaHeight(e.target as HTMLTextAreaElement)}
-              readOnly={isDubbingService || track.deleted || !isMediaFullyLoaded}
+              readOnly={track.deleted || !isMediaFullyLoaded}
               isDeleted={track.deleted}
             />
             {!track.deleted ? (

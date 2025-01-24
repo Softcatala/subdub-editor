@@ -9,32 +9,22 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      env_file: true
+
+  deploy:
+    needs: build
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: "18"
-      - name: Install dependencies
-        run: npm ci
-      - name: Load .env.production
-        run: |
-          echo "DUBBING_API_BASE_URL=$(grep DUBBING_API_BASE_URL .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
-          echo "TRANSCRIPTION_API_BASE_URL=$(grep TRANSCRIPTION_API_BASE_URL .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
-          echo "MATXA_API_BASE_URL=$(grep MATXA_API_BASE_URL .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
-          echo "APP_MODE=$(grep APP_MODE .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
-          echo "APP_LANGUAGE=$(grep APP_LANGUAGE .env.production | cut -d '=' -f2)" >> $GITHUB_ENV
-      - name: Build
-        run: npm run build:prod
-        env:
-          DUBBING_API_BASE_URL: ${{ env.DUBBING_API_BASE_URL }}
-          TRANSCRIPTION_API_BASE_URL: ${{ env.TRANSCRIPTION_API_BASE_URL }}
-          MATXA_API_BASE_URL: ${{ env.MATXA_API_BASE_URL }}
-          APP_MODE: ${{ env.APP_MODE }}
-          APP_LANGUAGE: ${{ env.APP_LANGUAGE }}
+          name: dist
+          path: dist
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:

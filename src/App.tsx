@@ -281,7 +281,7 @@ function App() {
           setMediaUrl(TranscriptionAPIService.getMediaUrl(newUuid, revision ?? ''));
           setMediaType(videoDataResponse.contentType);
           setMediaFileName(videoDataResponse.filename);
-          setTracks(TranscriptionAPIService.parseTracksFromJSON(tracksDataResponse));
+          setTracks(await TranscriptionAPIService.parseTracksFromJSON(tracksDataResponse));
         }
       } catch (error) {
         console.error("Error loading media or tracks from UUID:", error);
@@ -517,7 +517,7 @@ function App() {
     try {
       if (uuidParam) {
         const rawTracks = await DubbingAPIService.loadTracksFromUUID(uuidParam);
-        const parsedTracks = DubbingAPIService.parseTracksFromJSON(rawTracks);
+        const parsedTracks = await DubbingAPIService.parseTracksFromJSON(rawTracks);
         setTracks(parsedTracks);
 
         setMediaUrl(DubbingAPIService.getSilentVideoUrl(uuidParam));

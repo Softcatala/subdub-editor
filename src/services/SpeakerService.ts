@@ -21,25 +21,26 @@ const getRandomColor = () => {
 class SpeakerService {
   private speakers: Speaker[] = [];
 
-  setSpeakers(speakersData: Partial<Speaker>[]): void {
-    this.speakers = speakersData
-      .map((speaker) => ({
+  async setSpeakers(speakersData: Partial<Speaker>[]): Promise<void> {
+    this.speakers = await Promise.all(
+      speakersData.map(async (speaker) => ({
         id: speaker.id || uuidv4(),
         name: speaker.name || "",
-        voice: speaker.voice || matxaSynthesisProvider.getVoice("0"),
+        voice: speaker.voice || (await matxaSynthesisProvider.getVoice("0")),
         color: speaker.color || getRandomColor(),
       }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    );
+    this.sortSpeakers();
   }
 
-  setSpeaker(speaker: Partial<Speaker> & { id: string }): void {
+  async setSpeaker(speaker: Partial<Speaker> & { id: string }): Promise<void> {
     if (this.speakers.find((s) => s.id === speaker.id)) {
       this.updateSpeaker(speaker.id, speaker);
     } else {
       this.speakers.push({
         id: speaker.id,
         name: speaker.name || "",
-        voice: speaker.voice || matxaSynthesisProvider.getVoice("0"),
+        voice: speaker.voice || (await matxaSynthesisProvider.getVoice("0")),
         color: speaker.color || getRandomColor(),
       });
     }
